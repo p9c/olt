@@ -122,7 +122,7 @@ func (c *Ctx) GetHFlexed(weight float32, children ...layout.FlexChild) layout.Fl
 	return layout.Flexed(weight, func() { c.HorizontalFlexBox().Layout(c.Context, children...) })
 }
 
-// GetHFlexed returns a layout.FlexChild in vertical orientation embedded in a layout.FlexChild
+// GetVFlexed returns a layout.FlexChild in vertical orientation embedded in a layout.FlexChild
 func (c *Ctx) GetVFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
 	return layout.Flexed(weight, func() { c.VerticalFlexBox().Layout(c.Context, children...) })
 }
@@ -282,12 +282,13 @@ type Widget struct {
 	layout.Widget
 }
 
+// Widgeter is an interface that provides automatic access to dimensions information for custom widgets
 type Widgeter interface {
 	Draw()
 	Dimensions() image.Point
 }
 
-// ARGB returns a color.ARGB from a uint32, use like this: ARGB(0xRRGGBBAA)
+// ARGB returns a color.ARGB from a uint32, use like this: ARGB(0xAARRGGBB)
 func ARGB(rgba uint32) (c color.RGBA) {
 	c = color.RGBA{
 		A: byte(rgba >> 24),
