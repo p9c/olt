@@ -2,8 +2,8 @@
 
 > A GUI framework built on [Gio](https:gioui.org) making GUIs in Go easier than HTML/CSS/JS
 
-[![GoDoc](https://img.shields.io/badge/godoc-documentation-blue.svg)](https://godoc.org/github.com/p9c/pod) 
-[![Go Report Card](https://goreportcard.com/badge/github.com/p9c/pod)](https://goreportcard.com/report/github.com/p9c/pod)
+[![GoDoc](https://img.shields.io/badge/godoc-documentation-blue.svg)](https://godoc.org/github.com/p9c/olt) 
+[![Go Report Card](https://goreportcard.com/badge/github.com/p9c/olt)](https://goreportcard.com/report/github.com/p9c/olt)
 
 This is a repository containing tools and widgets for making programming multi-platform
 GUIs in pure Go painless and intuitive.
