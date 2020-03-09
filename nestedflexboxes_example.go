@@ -6,8 +6,8 @@ import (
 	"gioui.org/layout"
 )
 
-// ExampleEmptyFlexBox demonstrates a simple empty flexbox function
-func ExampleEmptyFlexBox() {
+// ExampleNewWindow demonstrates a simple empty flexbox function
+func ExampleNewWindow() {
 	NewWindow("test", 640, 480, func(c *Ctx) (lf layout.Flex) {
 		n := uint32(10)
 		nn := float32(n)
