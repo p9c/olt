@@ -1,15 +1,14 @@
-package main
+package olt
 
 import (
 	"image/color"
 
 	"gioui.org/layout"
-
-	"github.com/p9c/olt"
 )
 
-func main() {
-	olt.NewWindow("test", 640, 480, func(c *olt.Ctx) (lf layout.Flex) {
+// ExampleEmptyFlexBox demonstrates a simple empty flexbox function
+func ExampleEmptyFlexBox() {
+	NewWindow("test", 640, 480, func(c *Ctx) (lf layout.Flex) {
 		n := uint32(10)
 		nn := float32(n)
 		h := c.NewFlexChildren()
