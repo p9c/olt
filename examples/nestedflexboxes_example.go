@@ -25,7 +25,7 @@ func main() {
 					A: 255,
 				}))
 			}
-			h.AddV(1/nn, v)
+			h.AddVFlex(1/nn, v)
 		}
 		return h.GetHFlex()
 	})
