@@ -31,10 +31,11 @@ func DP(i int) unit.Value {
 type Ctx struct {
 	*layout.Context
 	W app.Window
+	error
 }
 
 func (c Ctx) New() *Ctx {
-	return &Ctx{layout.NewContext(c.W.Queue()), c.W}
+	return &Ctx{layout.NewContext(c.W.Queue()), c.W, nil}
 }
 
 func (c Ctx) Ctx() *layout.Context {
@@ -109,11 +110,15 @@ func NewWindow(title string, W, H int, lf LayoutFunc) {
 }
 
 // EmptyFlexBox is just a box with a given colour
-func (c *Ctx) EmptyFlexBox(color color.RGBA) layout.Widget {
+func (c *Ctx) EmptyFlexBox(col ...color.RGBA) layout.Widget {
 	return func() {
 		// layout.Flexed(1,
 		cs := c.Constraints
-		c.DrawRectangle(color, Box{}.New(cs.Width.Max, cs.Height.Max, Radius{}), unit.Dp(0))
+		cc := color.RGBA{}
+		if len(col) == 1 {
+			cc = col[0]
+		}
+		c.DrawRectangle(cc, Box{}.New(cs.Width.Max, cs.Height.Max, Radius{}), unit.Dp(0))
 	}
 }
 
@@ -132,6 +137,84 @@ func (c *Ctx) DrawRectangle(color color.RGBA, b Box, inset unit.Value) {
 		paint.PaintOp{Rect: square}.Add(c.Ops)
 		c.Dimensions = layout.Dimensions{Size: image.Point{X: b.W, Y: b.H}}
 	})
+}
+
+type FlexChildren struct {
+	C      []layout.FlexChild
+	Weight float32
+	*Ctx
+}
+
+func (f *FlexChildren) Append(a *FlexChildren) *FlexChildren {
+	f.C = append(f.C, a.C...)
+	return f
+}
+
+func (f *FlexChildren) Prepend(a *FlexChildren) *FlexChildren {
+	f.C = append(a.C, f.C...)
+	return f
+}
+
+func (f *FlexChildren) Insert(index int, a *FlexChildren) *FlexChildren {
+	if len(f.C) < index {
+		f.C = append(append(f.C[:index], a.C...), f.C[index:]...)
+	}
+	return f
+}
+
+func (f *FlexChildren) Delete(start, end int) *FlexChildren {
+	if start < end && end < len(f.C) {
+		f.C = append(f.C[:start], f.C[end:]...)
+	}
+	return f
+}
+
+func (f *FlexChildren) AddWidgets(weight float32, w ...layout.Widget) {
+	for i := range w {
+		f.C = append(f.C, layout.Flexed(weight, w[i]))
+	}
+}
+
+func (f *FlexChildren) AddV(weight float32, children FlexChildren) {
+	// for i := range children.C {
+	f.C = append(f.C, f.GetVFlexed(weight, children.C...))
+	// }
+}
+
+func (f *FlexChildren) AddH(weight float32, children FlexChildren) {
+	// for i := range children.C {
+	f.C = append(f.C, f.GetHFlexed(weight, children.C...))
+	// }
+}
+
+func (f *FlexChildren) FlexChildSlice() []layout.FlexChild {
+	return f.C
+}
+
+func (f *FlexChildren) GetHFlex() layout.Flex {
+	out := f.HorizontalFlexBox()
+	out.Layout(f.Context, f.C...)
+	return out
+
+}
+
+func (f *FlexChildren) GetVFlex() layout.Flex {
+	out := f.VerticalFlexBox()
+	out.Layout(f.Context, f.C...)
+	return out
+
+}
+
+func (c *Ctx) NewFlexChildren() FlexChildren {
+	return FlexChildren{Ctx: c}
+}
+
+func (c *Ctx) GetHFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
+	return layout.Flexed(weight, func() { c.HorizontalFlexBox().Layout(c.Context, children...) })
+}
+
+func (c *Ctx) GetVFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
+	return layout.Flexed(weight, func() { c.VerticalFlexBox().Layout(c.Context, children...) })
 }
 
 func (c *Ctx) HorizontalFlexBox() layout.Flex {
