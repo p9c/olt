@@ -14,113 +14,10 @@ import (
 	"gioui.org/unit"
 )
 
-// ARGB returns a color.ARGB from a uint32, use like this: ARGB(0xRRGGBBAA)
-func ARGB(rgba uint32) (c color.RGBA) {
-	c = color.RGBA{
-		A: byte(rgba >> 24),
-		R: byte(rgba >> 16),
-		G: byte(rgba >> 8),
-		B: byte(rgba),
-	}
-	return
-}
-
-// DP returns a unit.DP
-func DP(i int) unit.Value {
-	return unit.Dp(float32(i))
-}
-
-// Ctx is a wrapper around layout.Context and app.Window and embeds an error so its methods can be chained
-type Ctx struct {
-	*layout.Context
-	W    app.Window
-	err  error
-	Log  func(err string)
-	LogC func(err error)
-}
-
-// ClearError nils the embedded error
-func (c *Ctx) ClearError() *Ctx {
-	c.err = nil
-	return c
-}
-
-// Error implements the Error interface and returns a string
-func (c *Ctx) Error() string {
-	return c.err.Error()
-}
-
-// Err returns the underlying error variable
-func (c *Ctx) Err() error {
-	return c.err
-}
-
-// New returns a new context. This is an initializer, invoke thus:
-//
-// 		ctx := olt.Ctx{}.New()
-func (c Ctx) New() *Ctx {
-	cp := &Ctx{layout.NewContext(c.W.Queue()), c.W, nil, func(string) {}, func(error) {}}
-	return cp
-}
-
-// SetErrorLogger loads a function that is used to print errors when they are set
-func (c *Ctx) SetErrorLogger(logger func(err string)) *Ctx {
-	c.Log = logger
-	c.LogC = func(err error) {
-		c.Log(err.Error())
-	}
-	return c
-}
-
-// Seterror sets the underlying error value directly and logs it if the closure is loaded
-func (c *Ctx) Seterror(err error) *Ctx {
-	c.err = err
-	c.LogC(err)
-	return c
-}
-
-// SetError sets the error to a new string and logs it
-func (c *Ctx) SetError(err string) *Ctx {
-	c.err = errors.New(err)
-	c.LogC(c.err)
-	return c
-}
-
-// Ctx returns the underlying layout.Context
-func (c Ctx) Ctx() *layout.Context {
-	return c.Context
-}
-
-// Widget is a wrapper on layout.Widget so we can create local methods on the same type
-type Widget struct {
-	layout.Widget
-}
-
-// Coord is a wrapper on image.Point so we can attach local methods to it
-type Coord struct {
-	image.Point
-}
-
-// New creates a new Coord
-func (c Coord) New(x, y int) Coord {
-	c.X, c.Y = x, y
-	return c
-}
-
-// Radius is the corner radii for rounded rectangles. Zero means no rounding.
-type Radius struct {
-	SE, SW, NE, NW float32
-}
-
 // Box is a rectangle that is that simplifies specifying drawing a rectangle
 type Box struct {
 	W, H int
 	Radius
-}
-
-// New creates a new Box
-func (b Box) New(w, h int, r Radius) Box {
-	return Box{w, h, r}
 }
 
 // ClipOp returns a clip.Rect based on a Box
@@ -140,42 +37,40 @@ func (b Box) ClipOp(c *Ctx) clip.Op {
 	}.Op(c.Ops)
 }
 
-// LayoutFunc is the function signature for a function that creates a new layout.Flex. This is used to create the root
-// widget of a window where all the rest of the render tree is placed
-type LayoutFunc func(c *Ctx) layout.Flex
-
-type Widgeter interface {
-	Draw()
-	Dimensions() image.Point
+// New creates a new Box
+func (b Box) New(w, h int, r Radius) Box {
+	return Box{w, h, r}
 }
 
-// NewWindow encapsulates a window and binds it to a LayoutFunc which specifies how the interface works
-func NewWindow(title string, W, H int, lf LayoutFunc) {
-	go func() {
-		c := Ctx{
-			W: *app.NewWindow(
-				app.Title(title),
-				app.Size(DP(W), DP(H)),
-			)}.New()
-		for e := range c.W.Events() {
-			if e, ok := e.(system.FrameEvent); ok {
-				c.Reset(e.Config, e.Size)
-				lf(c)
-				e.Frame(c.Ops)
-			}
-		}
-	}()
-	app.Main()
+// Coord is a wrapper on image.Point so we can attach local methods to it
+type Coord struct {
+	image.Point
 }
 
-// EmptyFlexBox is just a box with a given colour. If no parameter is given it will be a no-op
-func (c *Ctx) EmptyFlexBox(col ...color.RGBA) layout.Widget {
-	return func() {
-		cs := c.Constraints
-		if len(col) == 1 {
-			c.DrawRectangle(col[1], Box{}.New(cs.Width.Max, cs.Height.Max, Radius{}), unit.Dp(0))
-		}
-	}
+// New creates a new Coord
+func (c Coord) New(x, y int) Coord {
+	c.X, c.Y = x, y
+	return c
+}
+
+// Ctx is a wrapper around layout.Context and app.Window and embeds an error so its methods can be chained
+type Ctx struct {
+	*layout.Context
+	W    app.Window
+	err  error
+	Log  func(err string)
+	LogC func(err error)
+}
+
+// ClearError nils the embedded error
+func (c *Ctx) ClearError() *Ctx {
+	c.err = nil
+	return c
+}
+
+// Ctx returns the underlying layout.Context
+func (c Ctx) Ctx() *layout.Context {
+	return c.Context
 }
 
 // DrawRectangle draws a box with a given set of corner radii and a fill colour
@@ -199,6 +94,85 @@ func (c *Ctx) DrawRectangle(color color.RGBA, b Box, inset unit.Value) {
 	})
 }
 
+// EmptyFlexBox is just a box with a given colour
+func (c *Ctx) EmptyFlexBox(col ...color.RGBA) layout.Widget {
+	return func() {
+		// layout.Flexed(1,
+		cs := c.Constraints
+		cc := color.RGBA{}
+		if len(col) == 1 {
+			cc = col[0]
+		}
+		c.DrawRectangle(cc, Box{}.New(cs.Width.Max, cs.Height.Max, Radius{}), unit.Dp(0))
+	}
+}
+
+// Err returns the underlying error variable
+func (c *Ctx) Err() error {
+	return c.err
+}
+
+// Error implements the Error interface and returns a string
+func (c *Ctx) Error() string {
+	return c.err.Error()
+}
+
+// GetHFlexed returns a layout.FlexChild in horizontal orientation embedded in a layout.FlexChild
+func (c *Ctx) GetHFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
+	return layout.Flexed(weight, func() { c.HorizontalFlexBox().Layout(c.Context, children...) })
+}
+
+// GetHFlexed returns a layout.FlexChild in vertical orientation embedded in a layout.FlexChild
+func (c *Ctx) GetVFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
+	return layout.Flexed(weight, func() { c.VerticalFlexBox().Layout(c.Context, children...) })
+}
+
+// HorizontalFlexBox returns an empty layout.Flex set to horizontal
+func (c *Ctx) HorizontalFlexBox() layout.Flex {
+	return layout.Flex{Axis: layout.Horizontal}
+}
+
+// New returns a new context. This is an initializer, invoke thus:
+//
+// 		ctx := olt.Ctx{}.New()
+func (c Ctx) New() *Ctx {
+	cp := &Ctx{layout.NewContext(c.W.Queue()), c.W, nil, func(string) {}, func(error) {}}
+	return cp
+}
+
+// NewFlexChildren creates a new FlexChildren and binds itself to it
+func (c *Ctx) NewFlexChildren() FlexChildren {
+	return FlexChildren{Ctx: c}
+}
+
+// Seterror sets the underlying error value directly and logs it if the closure is loaded
+func (c *Ctx) Seterror(err error) *Ctx {
+	c.err = err
+	c.LogC(err)
+	return c
+}
+
+// SetError sets the error to a new string and logs it
+func (c *Ctx) SetError(err string) *Ctx {
+	c.err = errors.New(err)
+	c.LogC(c.err)
+	return c
+}
+
+// SetErrorLogger loads a function that is used to print errors when they are set
+func (c *Ctx) SetErrorLogger(logger func(err string)) *Ctx {
+	c.Log = logger
+	c.LogC = func(err error) {
+		c.Log(err.Error())
+	}
+	return c
+}
+
+// VerticalFlexBox returns an empty layout.Flex set to vertical
+func (c *Ctx) VerticalFlexBox() layout.Flex {
+	return layout.Flex{Axis: layout.Vertical}
+}
+
 // FlexChildren is a struct to manage a list of layout.FlexChild(s) and provides a collection of editing functions
 type FlexChildren struct {
 	C      []layout.FlexChild
@@ -206,29 +180,26 @@ type FlexChildren struct {
 	*Ctx
 }
 
+// AddHFlex adds a FlexChildren in horizontal orientation
+func (f *FlexChildren) AddHFlex(weight float32, children FlexChildren) {
+	f.C = append(f.C, f.GetHFlexed(weight, children.C...))
+}
+
+// AddVFlex adds a FlexChildren in vertical orientation
+func (f *FlexChildren) AddVFlex(weight float32, children FlexChildren) {
+	f.C = append(f.C, f.GetVFlexed(weight, children.C...))
+}
+
+// AddWidgets allows you to add widgets directly to a FlexChildren
+func (f *FlexChildren) AddWidgets(weight float32, w ...layout.Widget) {
+	for i := range w {
+		f.C = append(f.C, layout.Flexed(weight, w[i]))
+	}
+}
+
 // Append adds more FlexChildren to the end of a FlexChildren and returns it
 func (f *FlexChildren) Append(a *FlexChildren) *FlexChildren {
 	f.C = append(f.C, a.C...)
-	return f
-}
-
-// Prepend inserts a given FlexChildren before the existing contents and returns it
-func (f *FlexChildren) Prepend(a *FlexChildren) *FlexChildren {
-	f.C = append(a.C, f.C...)
-	return f
-}
-
-// Insert inserts a given FlexChildren inside another FlexChildren and returns it
-func (f *FlexChildren) Insert(index int, a *FlexChildren) *FlexChildren {
-	switch {
-	case index < 0:
-		f.err = errors.New("negative index")
-	case len(f.C) < index:
-		f.err = errors.New("cannot insert beyond end of slice")
-		break
-	default:
-		f.C = append(append(f.C[:index], a.C...), f.C[index:]...)
-	}
 	return f
 }
 
@@ -256,23 +227,6 @@ func (f *FlexChildren) Delete(start, end int) *FlexChildren {
 	return f
 }
 
-// AddWidgets allows you to add widgets directly to a FlexChildren
-func (f *FlexChildren) AddWidgets(weight float32, w ...layout.Widget) {
-	for i := range w {
-		f.C = append(f.C, layout.Flexed(weight, w[i]))
-	}
-}
-
-// AddVFlex adds a FlexChildren in vertical orientation
-func (f *FlexChildren) AddVFlex(weight float32, children FlexChildren) {
-	f.C = append(f.C, f.GetVFlexed(weight, children.C...))
-}
-
-// AddHFlex adds a FlexChildren in horizontal orientation
-func (f *FlexChildren) AddHFlex(weight float32, children FlexChildren) {
-	f.C = append(f.C, f.GetHFlexed(weight, children.C...))
-}
-
 // FlexChildSlice returns the underlying []layout.FlexChild
 func (f *FlexChildren) FlexChildSlice() []layout.FlexChild {
 	return f.C
@@ -294,27 +248,76 @@ func (f *FlexChildren) GetVFlex() layout.Flex {
 
 }
 
-// NewFlexChildren creates a new FlexChildren and binds itself to it
-func (c *Ctx) NewFlexChildren() FlexChildren {
-	return FlexChildren{Ctx: c}
+// Insert inserts a given FlexChildren inside another FlexChildren and returns it
+func (f *FlexChildren) Insert(index int, a *FlexChildren) *FlexChildren {
+	switch {
+	case index < 0:
+		f.err = errors.New("negative index")
+	case len(f.C) < index:
+		f.err = errors.New("cannot insert beyond end of slice")
+		break
+	default:
+		f.C = append(append(f.C[:index], a.C...), f.C[index:]...)
+	}
+	return f
 }
 
-// GetHFlexed returns a layout.FlexChild in horizontal orientation embedded in a layout.FlexChild
-func (c *Ctx) GetHFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
-	return layout.Flexed(weight, func() { c.HorizontalFlexBox().Layout(c.Context, children...) })
+// Prepend inserts a given FlexChildren before the existing contents and returns it
+func (f *FlexChildren) Prepend(a *FlexChildren) *FlexChildren {
+	f.C = append(a.C, f.C...)
+	return f
 }
 
-// GetHFlexed returns a layout.FlexChild in vertical orientation embedded in a layout.FlexChild
-func (c *Ctx) GetVFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
-	return layout.Flexed(weight, func() { c.VerticalFlexBox().Layout(c.Context, children...) })
+// LayoutFunc is the function signature for a function that creates a new layout.Flex. This is used to create the root
+// widget of a window where all the rest of the render tree is placed
+type LayoutFunc func(c *Ctx) layout.Flex
+
+// Radius is the corner radii for rounded rectangles. Zero means no rounding.
+type Radius struct {
+	SE, SW, NE, NW float32
 }
 
-// HorizontalFlexBox returns an empty layout.Flex set to horizontal
-func (c *Ctx) HorizontalFlexBox() layout.Flex {
-	return layout.Flex{Axis: layout.Horizontal}
+// Widget is a wrapper on layout.Widget so we can create local methods on the same type
+type Widget struct {
+	layout.Widget
 }
 
-// HorizontalFlexBox returns an empty layout.Flex set to vertical
-func (c *Ctx) VerticalFlexBox() layout.Flex {
-	return layout.Flex{Axis: layout.Vertical}
+type Widgeter interface {
+	Draw()
+	Dimensions() image.Point
+}
+
+// ARGB returns a color.ARGB from a uint32, use like this: ARGB(0xRRGGBBAA)
+func ARGB(rgba uint32) (c color.RGBA) {
+	c = color.RGBA{
+		A: byte(rgba >> 24),
+		R: byte(rgba >> 16),
+		G: byte(rgba >> 8),
+		B: byte(rgba),
+	}
+	return
+}
+
+// DP returns a unit.DP
+func DP(i int) unit.Value {
+	return unit.Dp(float32(i))
+}
+
+// NewWindow encapsulates a window and binds it to a LayoutFunc which specifies how the interface works
+func NewWindow(title string, W, H int, lf LayoutFunc) {
+	go func() {
+		c := Ctx{
+			W: *app.NewWindow(
+				app.Title(title),
+				app.Size(DP(W), DP(H)),
+			)}.New()
+		for e := range c.W.Events() {
+			if e, ok := e.(system.FrameEvent); ok {
+				c.Reset(e.Config, e.Size)
+				lf(c)
+				e.Frame(c.Ops)
+			}
+		}
+	}()
+	app.Main()
 }
