@@ -2,7 +2,6 @@ package olt
 
 import (
 	"errors"
-	"fmt"
 	"image"
 	"image/color"
 
@@ -13,7 +12,8 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
-	"github.com/l0k18/log"
+
+	"github.com/p9c/logi"
 )
 
 // Ctx is a wrapper around layout.Context and app.Window and embeds an error so its methods can be chained
@@ -21,7 +21,7 @@ type Ctx struct {
 	*layout.Context
 	W   *app.Window
 	err error
-	Log log.Logger
+	L   *logi.Logger
 }
 
 // ClearError nils the embedded error
@@ -63,7 +63,7 @@ func (c *Ctx) EmptyRigid(box Box, col ...color.RGBA) layout.Widget {
 		cs := c.Constraints
 		switch {
 		case box.H == 0 || box.W == 0:
-			c.Log("not drawing zero width box. There is no spoon")
+			c.L.Error("not drawing zero width box. There is no spoon")
 		case box.H < 0:
 			box.H = cs.Height.Max
 		case box.W < 0:
@@ -120,7 +120,7 @@ func (c *Ctx) GetVFlexed(weight float32, children ...layout.FlexChild) layout.Fl
 // Seterror sets the underlying error value directly and logs it if the closure is loaded
 func (c *Ctx) Seterror(err error) *Ctx {
 	c.err = err
-	c.LogC(err)
+	c.L.Error(err)
 	return c
 }
 
@@ -132,16 +132,13 @@ func (c *Ctx) NewFlexChildren() FlexChildren {
 // SetError sets the error to a new string and logs it
 func (c *Ctx) SetError(err string) *Ctx {
 	c.err = errors.New(err)
-	c.LogC(c.err)
+	c.L.Error(c.err)
 	return c
 }
 
 // SetErrorLogger loads a function that is used to print errors when they are set
 func (c *Ctx) SetErrorLogger(logger func(err string)) *Ctx {
-	c.Log = logger
-	c.LogC = func(err error) {
-		c.Log(err.Error())
-	}
+	c.L = logi.L
 	return c
 }
 
@@ -155,9 +152,7 @@ func HorizontalFlexBox() *layout.Flex {
 // 		ctx := olt.Ctx{}.New()
 func New(w ...*app.Window) (c *Ctx) {
 	c = &Ctx{
-		Println: log.DEBUG,
-		Log:     func(s string) { fmt.Println(s) },
-		LogC:    func(err error) { fmt.Println(err) },
+		L: logi.Empty().SetLevel("trace", true, "olt/"),
 	}
 	if len(w) > 0 {
 		c.W = w[0]

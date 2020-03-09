@@ -31,7 +31,7 @@ import (
 // 			Context: layout.NewContext(w.Queue()),
 // 			W:       w,
 // 			err:     c.err,
-// 			Log:     c.Log,
+// 			L:     c.L,
 // 			LogC:    c.LogC,
 // 		}
 // 		for e := range c.W.Events() {
@@ -55,33 +55,33 @@ type Window struct {
 
 func (c *Ctx) Window() *Window {
 	w := &Window{Ctx: c}
-	w.Println("new window")
+	w.L.Debug("new window")
 	return w
 }
 
 func (w *Window) Size(H, W int) *Window {
-	w.Println("h", H, "w", W)
+	w.L.Debug("h", H, "w", W)
 	w.h, w.w = H, W
 	return w
 }
 
 func (w *Window) Title(title string) *Window {
-	w.Println("title", title)
+	w.L.Debug("title", title)
 	w.title = title
 	return w
 }
 
 func (w *Window) Open() *Window {
-	w.Println(w)
+	w.L.Debug(w)
 	w.Window = app.NewWindow(
 		app.Title(w.title),
 		app.Size(DP(w.w), DP(w.h)),
 	)
-	w.Println(w.Window)
+	w.L.Debug(w.Window)
 	w.W = w.Window
 	for e := range w.Window.Events() {
 		if e, ok := e.(system.FrameEvent); ok {
-			w.Println(w, e, e.Config, e.Size)
+			w.L.Debug(w, e, e.Config, e.Size)
 			w.Reset(e.Config, e.Size)
 			w.lf(w.Ctx)
 			e.Frame(w.Ops)
