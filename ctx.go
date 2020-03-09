@@ -2,6 +2,7 @@ package olt
 
 import (
 	"errors"
+	"fmt"
 	"image"
 	"image/color"
 
@@ -12,15 +13,15 @@ import (
 	"gioui.org/op/paint"
 	"gioui.org/unit"
 	"gioui.org/widget/material"
+	"github.com/l0k18/log"
 )
 
 // Ctx is a wrapper around layout.Context and app.Window and embeds an error so its methods can be chained
 type Ctx struct {
 	*layout.Context
-	W    *app.Window
-	err  error
-	Log  func(err string)
-	LogC func(err error)
+	W   *app.Window
+	err error
+	Log log.Logger
 }
 
 // ClearError nils the embedded error
@@ -56,6 +57,27 @@ func (c *Ctx) DrawRectangle(color color.RGBA, b Box, inset unit.Value) {
 }
 
 // EmptyFlexBox is just a box with a given colour
+func (c *Ctx) EmptyRigid(box Box, col ...color.RGBA) layout.Widget {
+	return func() {
+		// layout.Flexed(1,
+		cs := c.Constraints
+		switch {
+		case box.H == 0 || box.W == 0:
+			c.Log("not drawing zero width box. There is no spoon")
+		case box.H < 0:
+			box.H = cs.Height.Max
+		case box.W < 0:
+			box.W = cs.Width.Max
+		}
+		cc := color.RGBA{}
+		if len(col) == 1 {
+			cc = col[0]
+		}
+		c.DrawRectangle(cc, Box{}.New(cs.Width.Max, cs.Height.Max, Radius{}), unit.Dp(0))
+	}
+}
+
+// EmptyFlexBox is just a box with a given colour
 func (c *Ctx) EmptyFlexBox(col ...color.RGBA) layout.Widget {
 	return func() {
 		// layout.Flexed(1,
@@ -87,40 +109,12 @@ func (c *Ctx) GetList(fn func(i int)) List {
 
 // GetHFlexed returns a layout.FlexChild in horizontal orientation embedded in a layout.FlexChild
 func (c *Ctx) GetHFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
-	return layout.Flexed(weight, func() { c.HorizontalFlexBox().Layout(c.Context, children...) })
+	return layout.Flexed(weight, func() { HorizontalFlexBox().Layout(c.Context, children...) })
 }
 
 // GetVFlexed returns a layout.FlexChild in vertical orientation embedded in a layout.FlexChild
 func (c *Ctx) GetVFlexed(weight float32, children ...layout.FlexChild) layout.FlexChild {
-	return layout.Flexed(weight, func() { c.VerticalFlexBox().Layout(c.Context, children...) })
-}
-
-// HorizontalFlexBox returns an empty layout.Flex set to horizontal
-func (c *Ctx) HorizontalFlexBox() layout.Flex {
-	return layout.Flex{Axis: layout.Horizontal}
-}
-
-// New returns a new context. This is an initializer, invoke thus:
-//
-// 		ctx := olt.Ctx{}.New()
-func (c *Ctx) New() *Ctx {
-	c.Context = layout.NewContext(c.W.Queue())
-	c.Log = func(string) {}
-	c.LogC = func(error) {}
-	return c
-}
-
-// NewFlexChildren creates a new FlexChildren and binds itself to it
-func (c *Ctx) NewFlexChildren() FlexChildren {
-	return FlexChildren{Ctx: c}
-}
-
-func NewList(scrollToEnd bool) *layout.List {
-	list := &layout.List{
-		Axis:        layout.Vertical,
-		ScrollToEnd: scrollToEnd,
-	}
-	return list
+	return layout.Flexed(weight, func() { VerticalFlexBox().Layout(c.Context, children...) })
 }
 
 // Seterror sets the underlying error value directly and logs it if the closure is loaded
@@ -128,6 +122,11 @@ func (c *Ctx) Seterror(err error) *Ctx {
 	c.err = err
 	c.LogC(err)
 	return c
+}
+
+// NewFlexChildren creates a new FlexChildren and binds itself to it
+func (c *Ctx) NewFlexChildren() FlexChildren {
+	return FlexChildren{Ctx: &Ctx{}}
 }
 
 // SetError sets the error to a new string and logs it
@@ -146,7 +145,43 @@ func (c *Ctx) SetErrorLogger(logger func(err string)) *Ctx {
 	return c
 }
 
+// HorizontalFlexBox returns an empty layout.Flex set to horizontal
+func HorizontalFlexBox() *layout.Flex {
+	return &layout.Flex{Axis: layout.Horizontal}
+}
+
+// New returns a new context. This is an initializer, invoke thus:
+//
+// 		ctx := olt.Ctx{}.New()
+func New(w ...*app.Window) (c *Ctx) {
+	c = &Ctx{
+		Println: log.DEBUG,
+		Log:     func(s string) { fmt.Println(s) },
+		LogC:    func(err error) { fmt.Println(err) },
+	}
+	if len(w) > 0 {
+		c.W = w[0]
+		c.Context = layout.NewContext(c.W.Queue())
+	}
+	return c
+}
+
+// NewList returns a new list layout box
+func NewList(scrollToEnd bool) *layout.List {
+	list := &layout.List{
+		Axis:        layout.Vertical,
+		ScrollToEnd: scrollToEnd,
+	}
+	return list
+}
+
+// Rigid returns a rigid layout box
+func Rigid(w layout.Widget) (out layout.FlexChild) {
+	out = layout.Rigid(w)
+	return
+}
+
 // VerticalFlexBox returns an empty layout.Flex set to vertical
-func (c *Ctx) VerticalFlexBox() layout.Flex {
-	return layout.Flex{Axis: layout.Vertical}
+func VerticalFlexBox() *layout.Flex {
+	return &layout.Flex{Axis: layout.Vertical}
 }

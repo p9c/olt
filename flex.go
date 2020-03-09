@@ -66,16 +66,16 @@ func (f *FlexChildren) FlexChildSlice() []layout.FlexChild {
 }
 
 // GetHFlex returns a horizontal Layout.Flex with its contents inside
-func (f *FlexChildren) GetHFlex() layout.Flex {
-	out := f.HorizontalFlexBox()
+func (f *FlexChildren) GetHFlex() *layout.Flex {
+	out := HorizontalFlexBox()
 	out.Layout(f.Context, f.C...)
 	return out
 
 }
 
 // GetVFlex returns a vertical layout.Flex with its contents inside
-func (f *FlexChildren) GetVFlex() layout.Flex {
-	out := f.VerticalFlexBox()
+func (f *FlexChildren) GetVFlex() *layout.Flex {
+	out := VerticalFlexBox()
 	out.Layout(f.Context, f.C...)
 	return out
 

@@ -7,7 +7,8 @@ import (
 )
 
 func main() {
-	olt.NewWindow("test", 640, 480, func(c *olt.Ctx) {
+	ctx := olt.New()
+	ctx.Window("test", 640, 480, func(c *olt.Ctx) {
 		n := uint32(10)
 		nn := float32(n)
 		h := c.NewFlexChildren()

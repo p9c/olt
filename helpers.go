@@ -34,8 +34,11 @@ func (b Box) ClipOp(c *Ctx) clip.Op {
 }
 
 // New creates a new Box
-func (b Box) New(w, h int, r Radius) Box {
-	return Box{w, h, r}
+func (b Box) New(w, h int, r ...Radius) Box {
+	if len(r) == 0 {
+		return Box{w, h, Radius{}}
+	}
+	return Box{w, h, r[0]}
 }
 
 // Coord is a wrapper on image.Point so we can attach local methods to it
@@ -70,8 +73,8 @@ type Widgeter interface {
 }
 
 // ARGB returns a color.ARGB from a uint32, use like this: ARGB(0xAARRGGBB)
-func ARGB(rgba uint32) (c color.RGBA) {
-	c = color.RGBA{
+func (c *Ctx) ARGB(rgba uint32) (col color.RGBA) {
+	col = color.RGBA{
 		A: byte(rgba >> 24),
 		R: byte(rgba >> 16),
 		G: byte(rgba >> 8),
