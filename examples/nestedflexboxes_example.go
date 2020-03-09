@@ -17,7 +17,6 @@ func main() {
 		for i := n - n; i < n; i++ {
 			v := c.NewFlexChildren()
 			for j := n - n; j < n; j++ {
-				log.Println(i, j)
 				v.AddWidgets(1/nn, c.EmptyFlexBox(color.RGBA{
 					R: 0,
 					G: byte(255 - 256/n*(j+1)),
