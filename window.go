@@ -3,6 +3,7 @@ package olt
 import (
 	"gioui.org/app"
 	"gioui.org/io/system"
+	"gioui.org/layout"
 )
 
 // // Window encapsulates a window and binds it to a LayoutFunc which specifies how the interface works
@@ -59,7 +60,7 @@ func (c *Ctx) Window() *Window {
 	return w
 }
 
-func (w *Window) Size(H, W int) *Window {
+func (w *Window) Size(W, H int) *Window {
 	w.L.Debug("h", H, "w", W)
 	w.h, w.w = H, W
 	return w
@@ -71,17 +72,21 @@ func (w *Window) Title(title string) *Window {
 	return w
 }
 
+func (w *Window) Load(lf LayoutFunc) *Window {
+	w.lf = lf
+	return w
+}
+
 func (w *Window) Open() *Window {
-	w.L.Debug(w)
-	w.Window = app.NewWindow(
+	ww := app.NewWindow(
 		app.Title(w.title),
 		app.Size(DP(w.w), DP(w.h)),
 	)
-	w.L.Debug(w.Window)
-	w.W = w.Window
-	for e := range w.Window.Events() {
+	w.Ctx.Context = layout.NewContext(ww.Queue())
+	// w.L.Traces(ww)
+	w.W = ww
+	for e := range w.W.Events() {
 		if e, ok := e.(system.FrameEvent); ok {
-			w.L.Debug(w, e, e.Config, e.Size)
 			w.Reset(e.Config, e.Size)
 			w.lf(w.Ctx)
 			e.Frame(w.Ops)

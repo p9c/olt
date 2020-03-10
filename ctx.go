@@ -21,7 +21,7 @@ type Ctx struct {
 	*layout.Context
 	W   *app.Window
 	err error
-	L   *logi.Logger
+	L *logi.Logger
 }
 
 // ClearError nils the embedded error
@@ -73,7 +73,7 @@ func (c *Ctx) EmptyRigid(box Box, col ...color.RGBA) layout.Widget {
 		if len(col) == 1 {
 			cc = col[0]
 		}
-		c.DrawRectangle(cc, Box{}.New(cs.Width.Max, cs.Height.Max, Radius{}), unit.Dp(0))
+		c.DrawRectangle(cc, box, unit.Dp(0))
 	}
 }
 
@@ -86,7 +86,7 @@ func (c *Ctx) EmptyFlexBox(col ...color.RGBA) layout.Widget {
 		if len(col) == 1 {
 			cc = col[0]
 		}
-		c.DrawRectangle(cc, Box{}.New(cs.Width.Max, cs.Height.Max, Radius{}), unit.Dp(0))
+		c.DrawRectangle(cc, NewBox(cs.Width.Max, cs.Height.Max), unit.Dp(0))
 	}
 }
 
@@ -125,8 +125,8 @@ func (c *Ctx) Seterror(err error) *Ctx {
 }
 
 // NewFlexChildren creates a new FlexChildren and binds itself to it
-func (c *Ctx) NewFlexChildren() FlexChildren {
-	return FlexChildren{Ctx: &Ctx{}}
+func (c *Ctx) NewFlexChildren() *FlexChildren {
+	return &FlexChildren{Ctx: c}
 }
 
 // SetError sets the error to a new string and logs it
@@ -152,7 +152,7 @@ func HorizontalFlexBox() *layout.Flex {
 // 		ctx := olt.Ctx{}.New()
 func New(w ...*app.Window) (c *Ctx) {
 	c = &Ctx{
-		L: logi.Empty().SetLevel("trace", true, "olt/"),
+		L: logi.Empty().SetLevel("trace", true, "olt"),
 	}
 	if len(w) > 0 {
 		c.W = w[0]

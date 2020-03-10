@@ -34,7 +34,7 @@ func (b Box) ClipOp(c *Ctx) clip.Op {
 }
 
 // New creates a new Box
-func (b Box) New(w, h int, r ...Radius) Box {
+func NewBox(w, h int, r ...Radius) Box {
 	if len(r) == 0 {
 		return Box{w, h, Radius{}}
 	}

@@ -14,25 +14,47 @@ type FlexChildren struct {
 }
 
 // AddHFlex adds a FlexChildren in horizontal orientation
-func (f *FlexChildren) AddHFlex(weight float32, children FlexChildren) {
+func (f *FlexChildren) AddHFlex(weight float32, children *FlexChildren) {
 	f.C = append(f.C, f.GetHFlexed(weight, children.C...))
 }
 
 // AddVFlex adds a FlexChildren in vertical orientation
-func (f *FlexChildren) AddVFlex(weight float32, children FlexChildren) {
+func (f *FlexChildren) AddVFlex(weight float32, children *FlexChildren) {
 	f.C = append(f.C, f.GetVFlexed(weight, children.C...))
 }
 
 // AddWidgets allows you to add widgets directly to a FlexChildren
-func (f *FlexChildren) AddWidgets(weight float32, w ...layout.Widget) {
+func (f *FlexChildren) AddWidgets(weight float32, w ...layout.Widget) *FlexChildren{
 	for i := range w {
 		f.C = append(f.C, layout.Flexed(weight, w[i]))
 	}
+	return f
 }
 
 // Append adds more FlexChildren to the end of a FlexChildren and returns it
 func (f *FlexChildren) Append(a *FlexChildren) *FlexChildren {
 	f.C = append(f.C, a.C...)
+	return f
+}
+
+func (f *FlexChildren) AddToStart(fc layout.FlexChild) *FlexChildren {
+	f.C = append([]layout.FlexChild{fc}, f.C...)
+	return f
+}
+
+func (f *FlexChildren) AddToEnd(fc layout.FlexChild) *FlexChildren {
+	f.C = append([]layout.FlexChild{fc}, f.C...)
+	return f
+}
+
+func (f *FlexChildren) InsertAt(fc layout.FlexChild, index int) *FlexChildren {
+	switch {
+	case index < 0:
+		f.SetError("negative index")
+	case index > len(f.C):
+		f.SetError("index past end of slice")
+	}
+	f.C = append(append(f.C[:index], fc), f.C[index:]...)
 	return f
 }
 
@@ -65,16 +87,16 @@ func (f *FlexChildren) FlexChildSlice() []layout.FlexChild {
 	return f.C
 }
 
-// GetHFlex returns a horizontal Layout.Flex with its contents inside
-func (f *FlexChildren) GetHFlex() *layout.Flex {
+// RenderHFlex returns a horizontal Layout.Flex with its contents inside
+func (f *FlexChildren) RenderHFlex() *layout.Flex {
 	out := HorizontalFlexBox()
 	out.Layout(f.Context, f.C...)
 	return out
 
 }
 
-// GetVFlex returns a vertical layout.Flex with its contents inside
-func (f *FlexChildren) GetVFlex() *layout.Flex {
+// RenderVFlex returns a vertical layout.Flex with its contents inside
+func (f *FlexChildren) RenderVFlex() *layout.Flex {
 	out := VerticalFlexBox()
 	out.Layout(f.Context, f.C...)
 	return out

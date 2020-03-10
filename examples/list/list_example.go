@@ -13,10 +13,12 @@ func main() {
 	gofont.Register()
 	th := material.NewTheme()
 	const n = 1e6
+	c := olt.New()
 	list := olt.NewList(false)
-	olt.Window("test", 640, 480, func(c *olt.Ctx) {
+	c.L.SetLevel("trace", true, "olt")
+	_ = c.Window().Title("test").Size(640, 480).Load(func(c *olt.Ctx) {
 		list.Layout(c.Context, n, func(i int) {
 			th.H3(fmt.Sprintf("List element #%d", i)).Layout(c.Context)
 		})
-	})
+	}).Open()
 }
